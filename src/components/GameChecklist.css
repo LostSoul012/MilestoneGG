@@ -1,0 +1,316 @@
+.gcl-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── HEADER ── */
+.gcl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 36px 24px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-main);
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+.gcl-header-left { display: flex; align-items: center; gap: 18px; }
+.gcl-icon { font-size: 44px; line-height: 1; flex-shrink: 0; }
+
+.gcl-title {
+  font-family: var(--font-hud);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-1);
+  margin-bottom: 10px;
+}
+
+.gcl-stats { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.gcl-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.gcl-big-progress { text-align: right; }
+
+.gcl-pct {
+  font-family: var(--font-hud);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 20px currentColor;
+}
+
+.gcl-pct-label {
+  font-family: var(--font-cond);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* ── CONTROLS BAR (filter + search + collapse) ── */
+.gcl-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 36px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-main);
+  position: sticky;
+  top: 109px;
+  z-index: 9;
+  flex-wrap: wrap;
+}
+
+.gcl-filter-tabs { display: flex; }
+
+.gcl-filter-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  font-family: var(--font-cond);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.gcl-filter-btn:hover { color: var(--text-1); }
+.gcl-filter-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+.gcl-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+/* ── SEARCH ── */
+.gcl-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  transition: border-color 0.15s;
+}
+.gcl-search-wrap:focus-within { border-color: var(--border-lit); }
+
+.gcl-search-icon { color: var(--text-4); font-size: 16px; flex-shrink: 0; }
+
+.gcl-search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  width: 180px;
+  transition: width 0.2s ease;
+}
+.gcl-search-input::placeholder { color: var(--text-4); }
+.gcl-search-input:focus { width: 240px; }
+
+.gcl-search-clear {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.gcl-search-clear:hover { color: var(--red); }
+
+/* ── SEARCH HINT ── */
+.gcl-search-hint {
+  padding: 8px 36px;
+  font-family: var(--font-cond);
+  font-size: 12px;
+  color: var(--text-3);
+  letter-spacing: 0.05em;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── BODY ── */
+.gcl-body { padding: 24px 36px 60px; }
+
+/* ── CATEGORY ── */
+.gcl-category { margin-bottom: 20px; }
+
+.gcl-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.gcl-cat-clickable {
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin: 0 -8px;
+  transition: background 0.12s;
+}
+.gcl-cat-clickable:hover { background: var(--bg-hover); }
+
+.gcl-cat-title-row { display: flex; align-items: center; gap: 8px; }
+
+.gcl-cat-name {
+  font-family: var(--font-cond);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.gcl-cat-count { font-family: var(--font-cond); font-size: 12px; color: var(--text-3); }
+
+.gcl-collapse-arrow {
+  font-size: 14px;
+  color: var(--text-3);
+  transition: transform 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.gcl-collapse-arrow.collapsed { transform: rotate(-90deg); }
+
+.gcl-cat-progress { display: flex; align-items: center; gap: 10px; }
+
+.gcl-cat-pct {
+  font-family: var(--font-cond);
+  font-size: 12px;
+  color: var(--text-3);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ── MISSIONS ── */
+.gcl-missions { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+
+.gcl-mission {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  outline: none;
+}
+.gcl-mission:hover { background: var(--bg-card); border-color: var(--border); }
+.gcl-mission:focus-visible { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); }
+
+.gcl-mission.done {
+  background: var(--green-dim);
+  border-color: rgba(74,222,128,0.1);
+}
+.gcl-mission.done:hover {
+  background: rgba(74,222,128,0.15);
+  border-color: rgba(74,222,128,0.2);
+}
+
+.gcl-check {
+  width: 22px; height: 22px; min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.gcl-mission:hover .gcl-check { border-color: rgba(255,255,255,0.3); }
+.gcl-check.checked {
+  background: var(--green);
+  border-color: var(--green);
+  color: #052010;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(74,222,128,0.3);
+}
+
+.gcl-mission-text {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-1);
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.gcl-mission.done .gcl-mission-text {
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-color: rgba(74,222,128,0.35);
+}
+
+.gcl-done-badge {
+  font-family: var(--font-cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  opacity: 0.7;
+}
+
+/* ── COMPLETE BANNER ── */
+.gcl-complete-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px;
+  margin-top: 20px;
+  background: var(--amber-dim);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  animation: slideUp 0.4s ease;
+}
+
+/* ── MISSION NOTES ── */
+.gcl-mission-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gcl-mission-note {
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.gcl-mission.done .gcl-mission-note {
+  color: var(--text-4);
+}
