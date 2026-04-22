@@ -2,25 +2,22 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../lib/toast';
 import { SidebarIcon } from './GameChecklist';
-import './CategoryMissionEditor.css';
 
-function DragHandle() {
-  return <span className="cme-drag-handle" title="Drag to reorder">⠿</span>;
-}
+import './CategoryMissionEditor.css';
 
 function Spinner() {
   return <div className="cme-spinner" />;
 }
 
-export default function CategoryMissionEditor({ game, onRefresh }) {
+export default function CategoryMissionEditor({ game, onRefresh, onCountsChange }) {
   const toastRef = useRef(null);
   const toast = useToast();
   toastRef.current = toast;
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [savingCat, setSavingCat] = useState(null);    // catId being saved/deleted
-  const [savingMission, setSavingMission] = useState(null); // missionId being saved/deleted
+  const [savingCat, setSavingCat] = useState(null);
+  const [savingMission, setSavingMission] = useState(null);
   const [addingCatLoading, setAddingCatLoading] = useState(false);
   const [addingMissionLoading, setAddingMissionLoading] = useState(false);
 
@@ -31,159 +28,198 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
   const [newMissionText, setNewMissionText] = useState('');
   const [editingMission, setEditingMission] = useState(null);
 
-  const [draggingCat, setDraggingCat] = useState(null);
-  const [draggingMission, setDraggingMission] = useState(null);
-  const dragOverCat = useRef(null);
-  const dragOverMission = useRef(null);
+  // drag state — only track IDs and drop target for visual feedback
+  const [dragCatId, setDragCatId] = useState(null);
+  const [dropCatId, setDropCatId] = useState(null);
+  const [dragMissionId, setDragMissionId] = useState(null);
+  const [dropMissionId, setDropMissionId] = useState(null);
+  const dragMissionCatId = useRef(null);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('categories')
-      .select('*, missions(*)')
-      .eq('game_id', game.id)
-      .order('order_index', { ascending: true });
-    if (error) toastRef.current('Failed to load', 'error');
-    else {
-      setCategories((data || []).map(c => ({
-        ...c,
-        missions: [...(c.missions || [])].sort((a, b) => a.order_index - b.order_index)
-      })));
-    }
+      .from('categories').select('*, missions(*)')
+      .eq('game_id', game.id).order('order_index', { ascending: true });
+    if (error) toastRef.current('Failed to load: ' + (error?.message || error), 'error');
+    else setCategories((data || []).map(c => ({
+      ...c,
+      missions: [...(c.missions || [])].sort((a, b) => a.order_index - b.order_index)
+    })));
     setLoading(false);
   }, [game.id]);
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  // ── Category CRUD ────────────────────────────────────
+  // ── Category CRUD ─────────────────────────────────
   const addCategory = async () => {
     if (!newCatName.trim()) return;
     setAddingCatLoading(true);
-    const { error } = await supabase.from('categories').insert({
+    const { data, error } = await supabase.from('categories').insert({
       game_id: game.id, name: newCatName.trim(), order_index: categories.length,
-    });
+    }).select().single();
     setAddingCatLoading(false);
-    if (error) { toastRef.current('Failed to add category', 'error'); return; }
+    if (error) { toastRef.current('Failed to add category: ' + (error?.message || error), 'error'); return; }
     toastRef.current('Category added', 'success');
     setNewCatName(''); setAddingCat(false);
-    fetchCategories(); onRefresh();
+    setCategories(prev => {
+      const next = [...prev, { ...data, missions: [] }];
+      onCountsChange?.(game.id, next);
+      return next;
+    });
   };
 
   const saveCategory = async () => {
     if (!editingCat?.name.trim()) return;
     setSavingCat(editingCat.id);
-    const { error } = await supabase.from('categories').update({ name: editingCat.name }).eq('id', editingCat.id);
+    const { error } = await supabase.from('categories').update({ name: editingCat.name.trim() }).eq('id', editingCat.id);
     setSavingCat(null);
-    if (error) { toastRef.current('Failed to update', 'error'); return; }
-    setEditingCat(null); fetchCategories(); onRefresh();
+    if (error) { toastRef.current('Failed to update category: ' + (error?.message || error), 'error'); return; }
+    setCategories(prev => prev.map(c => c.id === editingCat.id ? { ...c, name: editingCat.name.trim() } : c));
+    setEditingCat(null);
   };
 
   const deleteCategory = async (cat) => {
     setSavingCat(cat.id);
     const { error } = await supabase.from('categories').delete().eq('id', cat.id);
     setSavingCat(null);
-    if (error) { toastRef.current('Failed to delete', 'error'); return; }
+    if (error) { toastRef.current('Failed to delete: ' + (error?.message || error), 'error'); return; }
     toastRef.current(`${cat.name} deleted`, 'success');
-    fetchCategories(); onRefresh();
+    setCategories(prev => {
+      const next = prev.filter(c => c.id !== cat.id);
+      onCountsChange?.(game.id, next);
+      return next;
+    });
   };
 
-  // ── Mission CRUD ─────────────────────────────────────
+  // ── Mission CRUD ──────────────────────────────────
   const addMission = async (catId) => {
     if (!newMissionText.trim()) return;
     setAddingMissionLoading(true);
     const cat = categories.find(c => c.id === catId);
-    const { error } = await supabase.from('missions').insert({
+    const { data, error } = await supabase.from('missions').insert({
       category_id: catId, text: newMissionText.trim(),
       order_index: (cat?.missions || []).length, note: '',
-    });
+    }).select().single();
     setAddingMissionLoading(false);
-    if (error) { toastRef.current('Failed to add milestone', 'error'); return; }
+    if (error) { toastRef.current('Failed to add milestone: ' + (error?.message || error), 'error'); return; }
     setNewMissionText(''); setAddingMission(null);
-    fetchCategories(); onRefresh();
+    setCategories(prev => {
+      const next = prev.map(c => c.id === catId ? { ...c, missions: [...(c.missions || []), data] } : c);
+      onCountsChange?.(game.id, next);
+      return next;
+    });
   };
 
   const saveMission = async () => {
     if (!editingMission?.text.trim()) return;
     setSavingMission(editingMission.id);
-    const { error } = await supabase.from('missions')
-      .update({ text: editingMission.text, note: editingMission.note || '' })
-      .eq('id', editingMission.id);
+    const updated = { text: editingMission.text.trim(), note: editingMission.note != null ? editingMission.note : '' };
+    const { error } = await supabase.from('missions').update(updated).eq('id', editingMission.id);
     setSavingMission(null);
-    if (error) { toastRef.current('Failed to update', 'error'); return; }
-    setEditingMission(null); fetchCategories(); onRefresh();
+    if (error) { toastRef.current('Failed to update milestone: ' + (error?.message || error), 'error'); return; }
+    setCategories(prev => prev.map(c => ({
+      ...c,
+      missions: (c.missions || []).map(m => m.id === editingMission.id ? { ...m, ...updated } : m)
+    })));
+    setEditingMission(null);
   };
 
   const deleteMission = async (mission) => {
     setSavingMission(mission.id);
     const { error } = await supabase.from('missions').delete().eq('id', mission.id);
     setSavingMission(null);
-    if (error) { toastRef.current('Failed to delete', 'error'); return; }
-    fetchCategories(); onRefresh();
+    if (error) { toastRef.current('Failed to delete: ' + (error?.message || error), 'error'); return; }
+    setCategories(prev => {
+      const next = prev.map(c => ({
+        ...c,
+        missions: (c.missions || []).filter(m => m.id !== mission.id)
+      }));
+      onCountsChange?.(game.id, next);
+      return next;
+    });
   };
 
-  // ── Drag: Categories ─────────────────────────────────
-  const handleCatDragStart = (e, catId) => {
-    setDraggingCat(catId);
+  // ── Category drag — only handle initiates drag ────
+  const onCatHandleDragStart = (e, catId) => {
+    setDragCatId(catId);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('type', 'category');
   };
-  const handleCatDragOver = (e, catId) => {
+
+  const onCatDragOver = (e, catId) => {
     e.preventDefault();
-    dragOverCat.current = catId;
+    if (dragCatId && dragCatId !== catId) setDropCatId(catId);
   };
-  const handleCatDrop = async (e, targetCatId) => {
+
+  const onCatDragLeave = () => setDropCatId(null);
+
+  const onCatDrop = async (e, targetId) => {
     e.preventDefault();
-    if (!draggingCat || draggingCat === targetCatId) { setDraggingCat(null); return; }
-    const oldIndex = categories.findIndex(c => c.id === draggingCat);
-    const newIndex = categories.findIndex(c => c.id === targetCatId);
-    if (oldIndex === -1 || newIndex === -1) { setDraggingCat(null); return; }
+    setDropCatId(null);
+    if (!dragCatId || dragCatId === targetId) { setDragCatId(null); return; }
+    const oldIdx = categories.findIndex(c => c.id === dragCatId);
+    const newIdx = categories.findIndex(c => c.id === targetId);
+    if (oldIdx === -1 || newIdx === -1) { setDragCatId(null); return; }
     const reordered = [...categories];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
+    const [moved] = reordered.splice(oldIdx, 1);
+    reordered.splice(newIdx, 0, moved);
     setCategories(reordered);
-    setDraggingCat(null);
-    await Promise.all(reordered.map((cat, i) =>
-      supabase.from('categories').update({ order_index: i }).eq('id', cat.id)
+    setDragCatId(null);
+    await Promise.all(reordered.map((c, i) =>
+      supabase.from('categories').update({ order_index: i }).eq('id', c.id)
     ));
-    onRefresh();
   };
 
-  // ── Drag: Missions ───────────────────────────────────
-  const handleMissionDragStart = (e, missionId, catId) => {
-    setDraggingMission({ missionId, catId });
+  const onCatDragEnd = () => { setDragCatId(null); setDropCatId(null); };
+
+  // ── Mission drag — only handle initiates drag ─────
+  const onMissionHandleDragStart = (e, missionId, catId) => {
+    setDragMissionId(missionId);
+    dragMissionCatId.current = catId;
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('type', 'mission');
     e.stopPropagation();
   };
-  const handleMissionDragOver = (e, missionId) => {
+
+  const onMissionDragOver = (e, missionId, catId) => {
     e.preventDefault();
     e.stopPropagation();
-    dragOverMission.current = missionId;
+    if (dragMissionId && dragMissionId !== missionId && dragMissionCatId.current === catId) {
+      setDropMissionId(missionId);
+    }
   };
-  const handleMissionDrop = async (e, targetMissionId, catId) => {
+
+  const onMissionDragLeave = () => setDropMissionId(null);
+
+  const onMissionDrop = async (e, targetId, catId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!draggingMission || draggingMission.missionId === targetMissionId) { setDraggingMission(null); return; }
-    if (draggingMission.catId !== catId) { setDraggingMission(null); return; }
+    setDropMissionId(null);
+    if (!dragMissionId || dragMissionId === targetId || dragMissionCatId.current !== catId) {
+      setDragMissionId(null); return;
+    }
     const cat = categories.find(c => c.id === catId);
     if (!cat) return;
     const missions = [...cat.missions];
-    const oldIdx = missions.findIndex(m => m.id === draggingMission.missionId);
-    const newIdx = missions.findIndex(m => m.id === targetMissionId);
-    if (oldIdx === -1 || newIdx === -1) { setDraggingMission(null); return; }
+    const oldIdx = missions.findIndex(m => m.id === dragMissionId);
+    const newIdx = missions.findIndex(m => m.id === targetId);
+    if (oldIdx === -1 || newIdx === -1) { setDragMissionId(null); return; }
     const [moved] = missions.splice(oldIdx, 1);
     missions.splice(newIdx, 0, moved);
     setCategories(prev => prev.map(c => c.id === catId ? { ...c, missions } : c));
-    setDraggingMission(null);
+    setDragMissionId(null);
     await Promise.all(missions.map((m, i) =>
       supabase.from('missions').update({ order_index: i }).eq('id', m.id)
     ));
   };
 
-  // ── Export JSON ──────────────────────────────────────
+  const onMissionDragEnd = () => { setDragMissionId(null); setDropMissionId(null); };
+
+  // ── Export JSON ───────────────────────────────────
   const handleExport = () => {
-    const exportData = {
+    const data = {
       name: game.name,
       icon: game.icon || '',
-      color: game.color || '',
       description: game.description || '',
       categories: categories.map(cat => ({
         name: cat.name,
@@ -193,7 +229,7 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
         })),
       })),
     };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -208,40 +244,42 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
   return (
     <div className="cme-container">
       <div className="cme-header">
-        <SidebarIcon icon={game.icon} size={32} />
+        <SidebarIcon icon={game.icon} width={64} height={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="cme-game-name">{game.name}</div>
           <div className="cme-game-meta">
             {categories.length} categories · {categories.reduce((a, c) => a + (c.missions || []).length, 0)} milestones
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={handleExport} title="Export as JSON">
-          ⬇ Export JSON
-        </button>
+        <button className="btn btn-ghost btn-sm" onClick={handleExport}>⬇ Export JSON</button>
       </div>
 
       <div className="cme-body">
         {categories.map(cat => (
           <div
             key={cat.id}
-            className={`cme-category ${draggingCat === cat.id ? 'dragging' : ''}`}
-            draggable
-            onDragStart={e => handleCatDragStart(e, cat.id)}
-            onDragOver={e => handleCatDragOver(e, cat.id)}
-            onDrop={e => handleCatDrop(e, cat.id)}
-            onDragEnd={() => setDraggingCat(null)}
+            className={`cme-category
+              ${dragCatId === cat.id ? ' cme-dragging' : ''}
+              ${dropCatId === cat.id ? ' cme-drop-target' : ''}`}
+            onDragOver={e => onCatDragOver(e, cat.id)}
+            onDragLeave={onCatDragLeave}
+            onDrop={e => onCatDrop(e, cat.id)}
+            onDragEnd={onCatDragEnd}
           >
-            {/* Category header */}
             <div className="cme-cat-header">
-              <DragHandle />
+              {/* Drag handle — ONLY this is draggable */}
+              <span
+                className="cme-drag-handle"
+                draggable
+                onDragStart={e => onCatHandleDragStart(e, cat.id)}
+                title="Drag to reorder category"
+              >⠿</span>
+
               {editingCat?.id === cat.id ? (
-                <input
-                  className="input cme-inline-input"
-                  value={editingCat.name}
+                <input className="input cme-inline-input" value={editingCat.name}
                   onChange={e => setEditingCat({ ...editingCat, name: e.target.value })}
                   onKeyDown={e => { if (e.key === 'Enter') saveCategory(); if (e.key === 'Escape') setEditingCat(null); }}
-                  autoFocus
-                />
+                  autoFocus />
               ) : (
                 <span className="cme-cat-name">{cat.name}</span>
               )}
@@ -249,7 +287,7 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
               <div className="cme-cat-actions">
                 {savingCat === cat.id ? <Spinner /> : editingCat?.id === cat.id ? (
                   <>
-                    <button className="btn btn-success btn-sm" onClick={saveCategory} disabled={savingCat === cat.id}>Save</button>
+                    <button className="btn btn-success btn-sm" onClick={saveCategory}>Save</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditingCat(null)}>Cancel</button>
                   </>
                 ) : (
@@ -261,37 +299,37 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
               </div>
             </div>
 
-            {/* Missions */}
             <div className="cme-missions">
               {(cat.missions || []).map(m => (
                 <div
                   key={m.id}
-                  className={`cme-mission-block ${draggingMission?.missionId === m.id ? 'dragging' : ''}`}
-                  draggable
-                  onDragStart={e => handleMissionDragStart(e, m.id, cat.id)}
-                  onDragOver={e => handleMissionDragOver(e, m.id)}
-                  onDrop={e => handleMissionDrop(e, m.id, cat.id)}
-                  onDragEnd={() => setDraggingMission(null)}
+                  className={`cme-mission-block
+                    ${dragMissionId === m.id ? ' cme-dragging' : ''}
+                    ${dropMissionId === m.id ? ' cme-drop-target' : ''}`}
+                  onDragOver={e => onMissionDragOver(e, m.id, cat.id)}
+                  onDragLeave={onMissionDragLeave}
+                  onDrop={e => onMissionDrop(e, m.id, cat.id)}
+                  onDragEnd={onMissionDragEnd}
                 >
                   <div className="cme-mission">
-                    <DragHandle />
+                    {/* Drag handle — ONLY this is draggable */}
+                    <span
+                      className="cme-drag-handle"
+                      draggable
+                      onDragStart={e => onMissionHandleDragStart(e, m.id, cat.id)}
+                      title="Drag to reorder milestone"
+                    >⠿</span>
+
                     {editingMission?.id === m.id ? (
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <input
-                          className="input cme-inline-input"
-                          value={editingMission.text}
+                        <input className="input cme-inline-input" value={editingMission.text}
                           onChange={e => setEditingMission({ ...editingMission, text: e.target.value })}
                           onKeyDown={e => { if (e.key === 'Escape') setEditingMission(null); }}
-                          placeholder="Mission name..."
-                          autoFocus
-                        />
-                        <textarea
-                          className="input"
-                          value={editingMission.note || ''}
+                          placeholder="Mission name..." autoFocus />
+                        <textarea className="input" value={editingMission.note || ''}
                           onChange={e => setEditingMission({ ...editingMission, note: e.target.value })}
                           placeholder="Note / hint for users (optional)..."
-                          style={{ fontSize: 13, minHeight: 60, resize: 'vertical', fontFamily: 'var(--font-body)' }}
-                        />
+                          style={{ fontSize: 13, minHeight: 60, resize: 'vertical', fontFamily: 'var(--font-body)' }} />
                       </div>
                     ) : (
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -299,6 +337,7 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
                         {m.note && <span className="cme-mission-note-preview">{m.note}</span>}
                       </div>
                     )}
+
                     <div className="cme-mission-actions">
                       {savingMission === m.id ? <Spinner /> : editingMission?.id === m.id ? (
                         <>
@@ -317,25 +356,18 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
                 </div>
               ))}
 
-              {/* Add mission row */}
               {addingMission === cat.id ? (
                 <div className="cme-add-row">
-                  <input
-                    className="input cme-inline-input"
-                    placeholder="New milestone..."
-                    value={newMissionText}
-                    onChange={e => setNewMissionText(e.target.value)}
+                  <input className="input cme-inline-input" placeholder="New milestone..."
+                    value={newMissionText} onChange={e => setNewMissionText(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') addMission(cat.id); if (e.key === 'Escape') { setAddingMission(null); setNewMissionText(''); } }}
-                    autoFocus
-                    disabled={addingMissionLoading}
-                  />
-                  {addingMissionLoading
-                    ? <Spinner />
-                    : <>
-                        <button className="btn btn-primary btn-sm" onClick={() => addMission(cat.id)}>Add</button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setAddingMission(null); setNewMissionText(''); }}>✕</button>
-                      </>
-                  }
+                    autoFocus disabled={addingMissionLoading} />
+                  {addingMissionLoading ? <Spinner /> : (
+                    <>
+                      <button className="btn btn-primary btn-sm" onClick={() => addMission(cat.id)}>Add</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setAddingMission(null); setNewMissionText(''); }}>✕</button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <button className="btn btn-ghost btn-sm cme-add-milestone-btn"
@@ -347,26 +379,19 @@ export default function CategoryMissionEditor({ game, onRefresh }) {
           </div>
         ))}
 
-        {/* Add category */}
         {addingCat ? (
           <div className="cme-add-cat-row">
-            <input
-              className="input"
-              placeholder="Category name..."
-              value={newCatName}
+            <input className="input" placeholder="Category name..." value={newCatName}
               onChange={e => setNewCatName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') setAddingCat(false); }}
-              autoFocus
-              disabled={addingCatLoading}
-            />
+              autoFocus disabled={addingCatLoading} />
             <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
-              {addingCatLoading
-                ? <Spinner />
-                : <>
-                    <button className="btn btn-primary btn-sm" onClick={addCategory}>Add Category</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setAddingCat(false)}>Cancel</button>
-                  </>
-              }
+              {addingCatLoading ? <Spinner /> : (
+                <>
+                  <button className="btn btn-primary btn-sm" onClick={addCategory}>Add Category</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setAddingCat(false)}>Cancel</button>
+                </>
+              )}
             </div>
           </div>
         ) : (

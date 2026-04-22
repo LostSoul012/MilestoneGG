@@ -43,7 +43,7 @@ export default function UserManager() {
     }
     const { data, error } = await supabase.from('users').insert({ code, note: '' }).select().single();
     setGenerating(false);
-    if (error) { toast('Failed to create code', 'error'); return; }
+    if (error) { toastRef.current('Failed to create code', 'error'); return; }
     setNewCode(code);
     // Instant local update — no refetch needed
     setUsers(prev => [data, ...prev]);
@@ -51,24 +51,24 @@ export default function UserManager() {
 
   const handleDelete = async (user) => {
     const { error } = await supabase.from('users').delete().eq('id', user.id);
-    if (error) { toast('Failed to delete user', 'error'); return; }
+    if (error) { toastRef.current('Failed to delete user', 'error'); return; }
     // Instant local removal
     setUsers(prev => prev.filter(u => u.id !== user.id));
     setDeleteConfirm(null);
     if (newCode === user.code) setNewCode(null);
-    toast('User deleted', 'success');
+    toastRef.current('User deleted', 'success');
   };
 
   const handleSaveNote = async (userId, note) => {
     const { error } = await supabase.from('users').update({ note }).eq('id', userId);
-    if (error) { toast('Failed to save note', 'error'); return; }
+    if (error) { toastRef.current('Failed to save note', 'error'); return; }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, note } : u));
     setEditingNote(null);
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    toast('Code copied!', 'success');
+    toastRef.current('Code copied!', 'success');
   };
 
   return (

@@ -10,11 +10,13 @@ function GameIcon({ icon, size = 44 }) {
   );
 }
 
-function SidebarIcon({ icon, size = 24 }) {
+function SidebarIcon({ icon, size = 24, width, height }) {
   if (!icon) return null;
   const src = icon.startsWith('http') ? icon : `${process.env.PUBLIC_URL}/icons/${icon}`;
+  const w = width || size;
+  const h = height || size;
   return (
-    <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', borderRadius: 4, flexShrink: 0 }}
+    <img src={src} alt="" style={{ width: w, height: h, objectFit: 'contain', borderRadius: 4, flexShrink: 0 }}
       onError={e => { e.target.style.display = 'none'; }} />
   );
 }
@@ -78,10 +80,28 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, search]);
 
-  // Inject per-game custom CSS
+  // Inject per-game custom CSS + auto-load Google Fonts referenced in it
   useEffect(() => {
     if (styleRef.current) styleRef.current.remove();
+
     if (game.custom_css) {
+      // Extract font-family values and load from Google Fonts if needed
+      const builtinFonts = ['rajdhani', 'barlow', 'barlow condensed', 'monospace', 'sans-serif', 'serif', 'inherit'];
+      const fontMatches = [...game.custom_css.matchAll(/font-family:\s*([^;,}"]+)/gi)];
+      fontMatches.forEach(match => {
+        const raw = match[1].trim().replace(/['"]/g, '').split(',')[0].trim();
+        if (!builtinFonts.includes(raw.toLowerCase())) {
+          const id = `gfont-${raw.replace(/\s+/g, '-').toLowerCase()}`;
+          if (!document.getElementById(id)) {
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(raw)}:wght@400;600;700&display=swap`;
+            document.head.appendChild(link);
+          }
+        }
+      });
+
       const el = document.createElement('style');
       el.setAttribute('data-game-css', game.id);
       el.textContent = game.custom_css;
@@ -122,6 +142,9 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
   const total = allMissions.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  // Dynamic progress color: green ≥75%, cyan ≥40%, amber <40%
+  const progressColor = pct >= 75 ? 'var(--green)' : pct >= 40 ? 'var(--cyan)' : 'var(--amber)';
+
   const searchLower = search.toLowerCase().trim();
 
   const getFilteredMissions = (missions) => {
@@ -155,7 +178,7 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
       {/* Header */}
       <div className="gcl-header" style={{ '--game-color': game.color || 'var(--cyan)' }}>
         <div className="gcl-header-left">
-          <GameIcon icon={game.icon} size={48} />
+          <GameIcon icon={game.icon} size={86} />
           <div>
             <h1 className="gcl-title">{game.name}</h1>
             <div className="gcl-stats">
@@ -170,18 +193,15 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
 
         <div className="gcl-header-right">
           <div className="gcl-big-progress">
-            <div className="gcl-pct" style={{ color: game.color || 'var(--cyan)' }}>{pct}%</div>
+            <div className="gcl-pct" style={{ color: progressColor }}>{pct}%</div>
             <div className="gcl-pct-label">Complete</div>
             <div className="progress-bar" style={{ width: 160, marginTop: 6 }}>
-              <div className="progress-fill" style={{ width: `${pct}%`, background: game.color || 'var(--cyan)' }} />
+              <div className="progress-fill" style={{ width: `${pct}%`, background: progressColor, boxShadow: `0 0 8px ${progressColor}55` }} />
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4, fontFamily: 'var(--font-cond)' }}>
               {done} / {total}
             </div>
           </div>
-          <button className="btn btn-danger btn-sm" onClick={() => setConfirmRemove(true)} style={{ marginTop: 8 }}>
-            Remove Game
-          </button>
         </div>
       </div>
 
@@ -219,6 +239,11 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
           >
             {allCollapsed ? '▶ Expand All' : '▼ Collapse All'}
           </button>
+
+          {/* Remove Game moved here */}
+          <button className="btn btn-danger btn-sm" onClick={() => setConfirmRemove(true)}>
+            Remove Game
+          </button>
         </div>
       </div>
 
@@ -252,7 +277,7 @@ export default function GameChecklist({ game, progress, onToggle, onRemoveGame }
                 </div>
                 <div className="gcl-cat-progress">
                   <div className="progress-bar" style={{ flex: 1, maxWidth: 120 }}>
-                    <div className="progress-fill" style={{ width: `${catPct}%`, background: game.color || 'var(--cyan)' }} />
+                    <div className="progress-fill" style={{ width: `${catPct}%`, background: catPct >= 75 ? 'var(--green)' : catPct >= 40 ? 'var(--cyan)' : 'var(--amber)' }} />
                   </div>
                   <span className="gcl-cat-pct">{catPct}%</span>
                 </div>

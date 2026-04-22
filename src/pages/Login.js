@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../lib/toast';
 import './Login.css';
@@ -11,7 +11,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [adminSecret, setAdminSecret] = useState('');
-  const refs = [React.createRef(), React.createRef(), React.createRef(), React.createRef()];
+  const ref0 = useRef(null);
+  const ref1 = useRef(null);
+  const ref2 = useRef(null);
+  const ref3 = useRef(null);
+  const refs = [ref0, ref1, ref2, ref3];
 
   const handleDigit = (i, val) => {
     const upper = val.toUpperCase().replace(/[^A-Z0-9]/g, '');

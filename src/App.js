@@ -33,10 +33,10 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ToastProvider>
         <AppRouter />
-      </AuthProvider>
-    </ToastProvider>
+      </ToastProvider>
+    </AuthProvider>
   );
 }

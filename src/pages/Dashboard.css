@@ -21,8 +21,8 @@
    SIDEBAR
    ═══════════════════════════════════════ */
 .dash-sidebar {
-  width: 260px;
-  min-width: 260px;
+  width: 310px;
+  min-width: 310px;
   background: var(--bg-card);
   border-right: 1px solid var(--border);
   display: flex;
@@ -74,11 +74,11 @@
   border-bottom: 2px solid transparent;
   color: var(--text-3);
   font-family: var(--font-cond);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 10px 6px;
+  padding: 11px 6px;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -94,8 +94,8 @@
   background: var(--bg-root);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0 6px;
-  font-size: 10px;
+  padding: 0 7px;
+  font-size: 11px;
   color: var(--text-3);
 }
 
@@ -109,20 +109,21 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 14px;
+  padding: 12px 14px;
   border-radius: var(--radius);
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: all 0.12s;
-  margin-bottom: 3px;
+  transition: all 0.15s;
+  margin-bottom: 4px;
   position: relative;
+  overflow: hidden;
 }
-.dash-game-btn:hover { background: var(--bg-hover); border-color: var(--border); }
+.dash-game-btn:hover { background: var(--bg-hover); border-color: var(--border-mid); }
 .dash-game-btn.active {
-  background: var(--cyan-glow);
+  background: rgba(56,189,248,0.07);
   border-color: var(--border-lit);
 }
 .dash-game-btn.active::before {
@@ -130,48 +131,136 @@
   position: absolute;
   left: 0; top: 50%;
   transform: translateY(-50%);
-  width: 3px; height: 55%;
+  width: 3px; height: 60%;
   background: var(--cyan);
   border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.dash-game-btn img {
+  flex-shrink: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
 .dash-game-info { flex: 1; min-width: 0; }
 
 .dash-game-name {
   display: block;
-  font-family: var(--font-cond);
-  font-size: 13px;
+  font-family: var(--font-hud);
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-bottom: 7px;
+}
+
+.progress-bar {
+  height: 5px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
 }
 
 .dash-game-pct {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-3);
-  margin-top: 3px;
   font-family: var(--font-cond);
+  letter-spacing: 0.06em;
+  line-height: 1;
 }
 
-.dash-browse-item {
+/* ── BROWSE GRID ── */
+.dash-browse-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 2px;
+}
+
+.dash-browse-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 6px;
+  padding: 14px 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  margin-bottom: 4px;
   background: var(--bg-card2);
-  transition: border-color 0.12s;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  cursor: default;
+  text-align: center;
 }
-.dash-browse-item:hover { border-color: var(--border-mid); }
+.dash-browse-card:hover {
+  border-color: var(--border-mid);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.dash-browse-card-icon {
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.dash-browse-card-icon img {
+  border-radius: 8px;
+}
+
+.dash-browse-card-name {
+  display: block;
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-browse-card-add {
+  margin-top: 6px;
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-lit);
+  background: var(--cyan-glow);
+  color: var(--cyan);
+  font-family: var(--font-cond);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.dash-browse-card-add:hover {
+  background: rgba(56,189,248,0.18);
+  border-color: var(--cyan);
+  color: #fff;
+}
 
 .dash-sidebar-footer {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -270,7 +359,7 @@
    TABLET — 768px to 1024px
    ═══════════════════════════════════════ */
 @media (max-width: 1024px) {
-  .dash-sidebar { width: 220px; min-width: 220px; }
+  .dash-sidebar { width: 270px; min-width: 270px; }
 }
 
 /* ═══════════════════════════════════════
@@ -346,21 +435,14 @@
   .gcl-stats { gap: 5px; }
 }
 
-/* ── BROWSE ITEM DESCRIPTION ── */
-.dash-browse-desc {
-  display: block;
-  font-size: 12px;
-  color: var(--text-3);
-  margin-top: 2px;
-  line-height: 1.4;
-  font-style: italic;
-}
-
+/* ── BROWSE CARD COUNT ── */
 .dash-browse-count {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-4);
-  margin-top: 3px;
+  font-family: var(--font-cond);
+  letter-spacing: 0.06em;
+  line-height: 1;
 }
 
 /* ── EMPTY STATE ACTIONS ── */

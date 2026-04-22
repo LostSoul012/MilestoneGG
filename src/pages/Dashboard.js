@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../lib/toast';
@@ -8,6 +8,8 @@ import './Dashboard.css';
 export default function Dashboard() {
   const { session, logout } = useAuth();
   const toast = useToast();
+  const toastRef = useRef(null);
+  toastRef.current = toast;
 
   const [allGames, setAllGames] = useState([]);
   const [myGameIds, setMyGameIds] = useState(new Set());
@@ -24,8 +26,21 @@ export default function Dashboard() {
       supabase.from('user_games').select('game_id').eq('user_id', session.userId),
       supabase.from('progress').select('mission_id, done').eq('user_id', session.userId),
     ]);
-    if (gamesRes.error) toast('Failed to load games', 'error');
-    else setAllGames(gamesRes.data || []);
+    if (gamesRes.error) toastRef.current('Failed to load games', 'error');
+    else {
+      // Sort categories and missions by order_index — Supabase nested selects
+      // don't support ordering on related tables so we sort client-side
+      const sorted = (gamesRes.data || []).map(game => ({
+        ...game,
+        categories: [...(game.categories || [])]
+          .sort((a, b) => a.order_index - b.order_index)
+          .map(cat => ({
+            ...cat,
+            missions: [...(cat.missions || [])].sort((a, b) => a.order_index - b.order_index)
+          }))
+      }));
+      setAllGames(sorted);
+    }
     if (myGamesRes.data) setMyGameIds(new Set(myGamesRes.data.map(r => r.game_id)));
     if (progressRes.data) {
       const map = {};
@@ -33,7 +48,7 @@ export default function Dashboard() {
       setProgress(map);
     }
     setLoading(false);
-  }, [session.userId, toast]);
+  }, [session.userId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -63,17 +78,17 @@ export default function Dashboard() {
 
   const addGame = async (gameId) => {
     const { error } = await supabase.from('user_games').insert({ user_id: session.userId, game_id: gameId });
-    if (error) { toast('Failed to add game', 'error'); return; }
+    if (error) { toastRef.current('Failed to add game', 'error'); return; }
     setMyGameIds(prev => new Set([...prev, gameId]));
     setSelectedGameId(gameId);
     setView('my');
     setSidebarOpen(false);
-    toast('Game added!', 'success');
+    toastRef.current('Game added!', 'success');
   };
 
   const removeGame = async (gameId) => {
     const { error } = await supabase.from('user_games').delete().eq('user_id', session.userId).eq('game_id', gameId);
-    if (error) { toast('Failed to remove game', 'error'); return; }
+    if (error) { toastRef.current('Failed to remove game', 'error'); return; }
     const next = new Set(myGameIds);
     next.delete(gameId);
     setMyGameIds(next);
@@ -81,7 +96,7 @@ export default function Dashboard() {
       const remaining = allGames.find(g => next.has(g.id));
       setSelectedGameId(remaining?.id || null);
     }
-    toast('Game removed', 'success');
+    toastRef.current('Game removed', 'success');
   };
 
   const toggleMission = async (missionId, currentDone) => {
@@ -95,7 +110,7 @@ export default function Dashboard() {
     }, { onConflict: 'user_id,mission_id' });
     if (error) {
       setProgress(prev => ({ ...prev, [missionId]: currentDone }));
-      toast('Failed to save progress', 'error');
+      toastRef.current('Failed to save progress', 'error');
     }
   };
 
@@ -144,17 +159,18 @@ export default function Dashboard() {
             ) : (
               myGames.map(game => {
                 const { pct, done, total } = getGameProgress(game);
+                const progressColor = pct >= 75 ? 'var(--green)' : pct >= 40 ? 'var(--cyan)' : 'var(--amber)';
                 return (
                   <button
                     key={game.id}
                     className={`dash-game-btn ${selectedGameId === game.id ? 'active' : ''}`}
                     onClick={() => selectGame(game.id)}
                   >
-                    <SidebarIcon icon={game.icon} size={24} />
+                    <SidebarIcon icon={game.icon} size={48} />
                     <div className="dash-game-info">
                       <span className="dash-game-name">{game.name}</span>
-                      <div className="progress-bar" style={{ marginTop: 5 }}>
-                        <div className="progress-fill" style={{ width: `${pct}%`, background: game.color || 'var(--cyan)' }} />
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${pct}%`, background: progressColor, boxShadow: `0 0 8px ${progressColor}55` }} />
                       </div>
                       <span className="dash-game-pct">{done}/{total} · {pct}%</span>
                     </div>
@@ -172,31 +188,30 @@ export default function Dashboard() {
                 You've added all available games!
               </div>
             ) : (
-              browseGames.map(game => (
-                <div key={game.id} className="dash-browse-item">
-                  <SidebarIcon icon={game.icon} size={24} />
-                  <div className="dash-game-info">
-                    <span className="dash-game-name">{game.name}</span>
-                    {game.description && (
-                      <span className="dash-browse-desc">{game.description}</span>
-                    )}
+              <div className="dash-browse-grid">
+                {browseGames.map(game => (
+                  <div key={game.id} className="dash-browse-card">
+                    <div className="dash-browse-card-icon">
+                      <SidebarIcon icon={game.icon} size={64} />
+                    </div>
+                    <span className="dash-browse-card-name">{game.name}</span>
                     <span className="dash-browse-count">
                       {(game.categories || []).reduce((a, c) => a + (c.missions || []).length, 0)} milestones
                     </span>
+                    <button className="dash-browse-card-add" onClick={() => addGame(game.id)}>+ Add</button>
                   </div>
-                  <button className="btn btn-primary btn-sm" onClick={() => addGame(game.id)}>+ Add</button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </>
         )}
       </div>
 
       <div className="dash-sidebar-footer">
-        <span style={{ fontFamily: 'var(--font-cond)', fontSize: 11, color: 'var(--text-4)', letterSpacing: '0.12em' }}>
+        <span style={{ fontFamily: 'var(--font-cond)', fontSize: 13, color: 'var(--text-3)', letterSpacing: '0.12em' }}>
           CODE: {session.code}
         </span>
-        <button className="btn btn-ghost btn-sm" onClick={logout}>Logout</button>
+        <button className="btn btn-ghost btn-sm" style={{ fontSize: 13 }} onClick={logout}>Logout</button>
       </div>
     </aside>
   );

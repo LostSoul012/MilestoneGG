@@ -35,11 +35,29 @@ export default function Admin() {
       .select('*, categories(*, missions(*))')
       .order('created_at', { ascending: true });
     if (error) toastRef.current('Failed to load games', 'error');
-    else setGames(data || []);
+    else {
+      const sorted = (data || []).map(game => ({
+        ...game,
+        categories: [...(game.categories || [])]
+          .sort((a, b) => a.order_index - b.order_index)
+          .map(cat => ({
+            ...cat,
+            missions: [...(cat.missions || [])].sort((a, b) => a.order_index - b.order_index)
+          }))
+      }));
+      setGames(sorted);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchGames(); }, [fetchGames]);
+
+  // Silently update sidebar counts without triggering loading/spinner
+  const updateGameCounts = useCallback((gameId, categories) => {
+    setGames(prev => prev.map(g =>
+      g.id === gameId ? { ...g, categories } : g
+    ));
+  }, []);
 
   const handleDeleteGame = async (game) => {
     const { error } = await supabase.from('games').delete().eq('id', game.id);
@@ -47,14 +65,15 @@ export default function Admin() {
     toastRef.current(`${game.name} deleted`, 'success');
     setDeleteConfirm(null);
     if (selectedGameId === game.id) setSelectedGameId(null);
-    fetchGames();
+    setGames(prev => prev.filter(g => g.id !== game.id));
   };
 
   const handleToggleVisible = async (game) => {
-    const { error } = await supabase.from('games').update({ visible: !game.visible }).eq('id', game.id);
+    const newVisible = !game.visible;
+    const { error } = await supabase.from('games').update({ visible: newVisible }).eq('id', game.id);
     if (error) { toastRef.current('Failed to update', 'error'); return; }
-    toastRef.current(`${game.name} ${!game.visible ? 'visible' : 'hidden'}`, 'success');
-    fetchGames();
+    toastRef.current(`${game.name} ${newVisible ? 'visible' : 'hidden'}`, 'success');
+    setGames(prev => prev.map(g => g.id === game.id ? { ...g, visible: newVisible } : g));
   };
 
   const missionCount = (game) =>
@@ -108,7 +127,7 @@ export default function Admin() {
                       className={`game-row ${selectedGameId === game.id ? 'active' : ''} ${!game.visible ? 'hidden-game' : ''}`}
                       onClick={() => setSelectedGameId(game.id)}
                     >
-                      <SidebarIcon icon={game.icon} size={28} />
+                      <SidebarIcon icon={game.icon} width={64} height={46} />
                       <div className="game-row-info">
                         <span className="game-row-name">{game.name}</span>
                         <span className="game-row-meta">
@@ -139,6 +158,7 @@ export default function Admin() {
                   key={selectedGame.id}
                   game={selectedGame}
                   onRefresh={fetchGames}
+                  onCountsChange={updateGameCounts}
                 />
               ) : (
                 <div className="empty" style={{ height: '100%' }}>

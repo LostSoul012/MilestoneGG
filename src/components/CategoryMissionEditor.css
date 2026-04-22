@@ -193,3 +193,22 @@
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
 }
+
+/* ── DROP TARGET INDICATOR ── */
+.cme-drop-target {
+  border-color: var(--cyan) !important;
+  background: var(--cyan-dim) !important;
+  box-shadow: 0 0 0 2px rgba(56,189,248,0.15);
+}
+
+.cme-mission-block.cme-drop-target {
+  border-radius: 6px;
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+  background: var(--cyan-dim) !important;
+}
+
+.cme-dragging {
+  opacity: 0.35;
+  pointer-events: none;
+}

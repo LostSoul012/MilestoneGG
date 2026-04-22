@@ -135,7 +135,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: var(--radius);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: all 0.15s;
   margin-bottom: 3px;
@@ -235,3 +235,6 @@
   .code-input { width: 54px; height: 62px; font-size: 24px; }
   .code-inputs { gap: 8px; }
 }
+
+/* ── ADMIN GAME ROW — wider icon ── */
+.game-row { min-height: 58px; }

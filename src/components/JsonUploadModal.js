@@ -1,27 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../lib/toast';
 
 const EXAMPLE = `{
   "name": "Fallout 4",
-  "icon": "☢️",
-  "color": "#4ade80",
+  "icon": "https://your-project.supabase.co/storage/v1/object/public/game-icons/fallout4.png",
+  "description": "Post-apocalyptic RPG set in Boston",
   "categories": [
     {
       "name": "Main Story",
       "missions": [
-        "Escape the Vault",
-        "Find Shaun",
-        "Join the Minutemen",
-        "Defend the Castle"
+        { "text": "War Never Changes" },
+        { "text": "Out of Time" },
+        { "text": "Find Shaun", "note": "Track down your son" }
       ]
     },
     {
-      "name": "Side Quests",
+      "name": "Brotherhood of Steel",
       "missions": [
-        "Reunions",
-        "Unlikely Valentine",
-        "Getting a Clue"
+        { "text": "Fire Support" },
+        { "text": "Call to Arms" },
+        { "text": "Shadow of Steel" }
       ]
     }
   ]
@@ -29,6 +28,8 @@ const EXAMPLE = `{
 
 export default function JsonUploadModal({ onClose, onSaved }) {
   const toast = useToast();
+  const toastRef = useRef(null);
+  toastRef.current = toast;
   const [jsonText, setJsonText] = useState('');
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
@@ -43,6 +44,12 @@ export default function JsonUploadModal({ onClose, onSaved }) {
       for (const cat of data.categories) {
         if (!cat.name) { setError('Each category needs a "name"'); return; }
         if (!Array.isArray(cat.missions)) { setError(`Category "${cat.name}" needs a "missions" array`); return; }
+        for (const m of cat.missions) {
+          if (typeof m !== 'object' || !m.text) {
+            setError(`All missions must be objects with a "text" field.\nBad value: ${JSON.stringify(m)}\nIn category: "${cat.name}"`);
+            return;
+          }
+        }
       }
       setPreview(data);
     } catch (e) {
@@ -54,16 +61,20 @@ export default function JsonUploadModal({ onClose, onSaved }) {
     if (!preview) return;
     setSaving(true);
 
-    // Insert game
     const { data: gameData, error: gameErr } = await supabase
       .from('games')
-      .insert({ name: preview.name, icon: preview.icon || '🎮', color: preview.color || '#38bdf8' })
+      .insert({
+        name: preview.name,
+        icon: preview.icon || '',
+        description: preview.description || '',
+        color: preview.color || '#38bdf8',
+        custom_css: '',
+      })
       .select()
       .single();
 
-    if (gameErr) { toast('Failed to create game', 'error'); setSaving(false); return; }
+    if (gameErr) { toastRef.current('Failed to create game', 'error'); setSaving(false); return; }
 
-    // Insert categories + missions
     for (let ci = 0; ci < preview.categories.length; ci++) {
       const cat = preview.categories[ci];
       const { data: catData, error: catErr } = await supabase
@@ -72,22 +83,23 @@ export default function JsonUploadModal({ onClose, onSaved }) {
         .select()
         .single();
 
-      if (catErr) { toast(`Failed to create category: ${cat.name}`, 'error'); continue; }
+      if (catErr) { toastRef.current(`Failed to create category: ${cat.name}`, 'error'); continue; }
 
-      const missions = cat.missions.map((text, mi) => ({
+      const missions = cat.missions.map((m, mi) => ({
         category_id: catData.id,
-        text: typeof text === 'string' ? text : text.text || text,
+        text: m.text,
+        note: m.note || '',
         order_index: mi,
       }));
 
       if (missions.length > 0) {
         const { error: misErr } = await supabase.from('missions').insert(missions);
-        if (misErr) toast(`Failed to add some missions in ${cat.name}`, 'error');
+        if (misErr) toastRef.current(`Failed to add some missions in ${cat.name}`, 'error');
       }
     }
 
     setSaving(false);
-    toast(`${preview.name} imported successfully!`, 'success');
+    toastRef.current(`${preview.name} imported!`, 'success');
     onSaved();
   };
 
@@ -100,8 +112,8 @@ export default function JsonUploadModal({ onClose, onSaved }) {
 
         {!preview ? (
           <>
-            <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 16 }}>
-              Paste a JSON file to bulk-import a game with all its categories and milestones.
+            <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+              Paste a JSON file to bulk-import a game. Missions must be objects with a <code style={{ color: 'var(--cyan)' }}>"text"</code> field. Optional <code style={{ color: 'var(--amber)' }}>"note"</code> field adds a hint for users.
             </p>
 
             <div className="modal-field">
@@ -116,7 +128,7 @@ export default function JsonUploadModal({ onClose, onSaved }) {
             </div>
 
             {error && (
-              <div style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-dim)', padding: '8px 12px', borderRadius: 6, marginBottom: 12, border: '1px solid rgba(248,113,113,0.2)' }}>
+              <div style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-dim)', padding: '8px 12px', borderRadius: 6, marginBottom: 12, border: '1px solid rgba(248,113,113,0.2)', whiteSpace: 'pre-wrap' }}>
                 ✕ {error}
               </div>
             )}
@@ -125,7 +137,7 @@ export default function JsonUploadModal({ onClose, onSaved }) {
               <summary style={{ color: 'var(--text-3)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-cond)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 View example format
               </summary>
-              <pre style={{ marginTop: 10, background: 'var(--bg-root)', border: '1px solid var(--border)', borderRadius: 6, padding: 12, fontSize: 12, color: 'var(--text-2)', overflow: 'auto', maxHeight: 200 }}>
+              <pre style={{ marginTop: 10, background: 'var(--bg-root)', border: '1px solid var(--border)', borderRadius: 6, padding: 12, fontSize: 12, color: 'var(--text-2)', overflow: 'auto', maxHeight: 280 }}>
                 {EXAMPLE}
               </pre>
             </details>
@@ -140,16 +152,16 @@ export default function JsonUploadModal({ onClose, onSaved }) {
         ) : (
           <>
             <div style={{ background: 'var(--green-dim)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 'var(--radius)', padding: '14px 18px', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <span style={{ fontSize: 28 }}>{preview.icon || '🎮'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-hud)', fontWeight: 700, fontSize: 16, color: 'var(--text-1)' }}>{preview.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
+                  {preview.description && <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 2 }}>{preview.description}</div>}
+                  <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4 }}>
                     {preview.categories.length} categories · {totalMissions} milestones
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {preview.categories.map((cat, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-2)', padding: '3px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
                     <span>{cat.name}</span>

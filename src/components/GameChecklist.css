@@ -24,11 +24,12 @@
 
 .gcl-title {
   font-family: var(--font-hud);
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--text-1);
   margin-bottom: 10px;
+  line-height: 1.1;
 }
 
 .gcl-stats { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
