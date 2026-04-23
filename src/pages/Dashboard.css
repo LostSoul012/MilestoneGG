@@ -201,7 +201,10 @@
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
   cursor: default;
   text-align: center;
+  min-height: 190px;
+  justify-content: space-between;
 }
+
 .dash-browse-card:hover {
   border-color: var(--border-mid);
   background: var(--bg-hover);

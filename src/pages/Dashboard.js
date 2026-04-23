@@ -22,7 +22,7 @@ export default function Dashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [gamesRes, myGamesRes, progressRes] = await Promise.all([
-      supabase.from('games').select('*, categories(*, missions(*))').eq('visible', true).order('created_at'),
+      supabase.from('games').select('*, categories(*, missions(*))').eq('visible', true).order('name'),
       supabase.from('user_games').select('game_id').eq('user_id', session.userId),
       supabase.from('progress').select('mission_id, done').eq('user_id', session.userId),
     ]);
