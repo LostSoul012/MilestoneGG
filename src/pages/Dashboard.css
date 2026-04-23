@@ -236,9 +236,10 @@
   letter-spacing: 0.04em;
   line-height: 1.2;
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
 }
 
 .dash-browse-card-add {
