@@ -79,8 +79,8 @@ export default function Login() {
           direction="diagonal"
           speed={0.4}
           squareSize={44}
-          borderColor="rgba(56,189,248,0.12)"
-          hoverFillColor="rgba(56,189,248,0.08)"
+          borderColor="rgba(56,189,248,0.04)"
+          hoverFillColor="rgba(56,189,248,0.06)"
           shape="square"
           hoverTrailAmount={4}
         />
