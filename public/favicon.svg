@@ -1,6 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#080c14"/>
-  <text x="2" y="22" font-family="sans-serif" font-weight="900" font-size="14" fill="#e2eaf5" letter-spacing="-0.5">M</text>
-  <text x="14" y="22" font-family="sans-serif" font-weight="900" font-size="14" fill="#38bdf8">GG</text>
-  <rect x="2" y="25" width="28" height="2" rx="1" fill="#38bdf8" opacity="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="18" fill="#080c14"/>
+  <g transform="translate(50, 50)">
+    <polygon points="0,-38 33,-19 33,19 0,38 -33,19 -33,-19" fill="#38bdf8" fill-opacity="0.12" stroke="#38bdf8" stroke-width="2"/>
+    <polygon points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-opacity="0.3"/>
+    <text x="0" y="0" text-anchor="middle" font-family="monospace" font-size="38" font-weight="900" fill="#ffffff" dy="0.35em">M</text>
+  </g>
 </svg>
