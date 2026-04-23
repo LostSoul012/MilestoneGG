@@ -36,12 +36,13 @@
 .dash-logo {
   padding: 20px 18px 16px;
   font-family: var(--font-hud);
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 2px;
 }
@@ -442,7 +443,7 @@
 /* ── BROWSE CARD COUNT ── */
 .dash-browse-count {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-4);
   font-family: var(--font-cond);
   letter-spacing: 0.06em;

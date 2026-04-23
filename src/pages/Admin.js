@@ -33,7 +33,7 @@ export default function Admin() {
     const { data, error } = await supabase
       .from('games')
       .select('*, categories(*, missions(*))')
-      .order('created_at', { ascending: true });
+      .order('name', { ascending: true });
     if (error) toastRef.current('Failed to load games', 'error');
     else {
       const sorted = (data || []).map(game => ({
@@ -131,7 +131,7 @@ export default function Admin() {
                       <div className="game-row-info">
                         <span className="game-row-name">{game.name}</span>
                         <span className="game-row-meta">
-                          {(game.categories || []).length} categories · {missionCount(game)} milestones
+                          {(game.categories || []).length} categories <br/> {missionCount(game)} milestones
                         </span>
                       </div>
                       <div className="game-row-actions" onClick={e => e.stopPropagation()}>
