@@ -1,7 +1,8 @@
 .admin-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100dvh;        /* was min-height: 100vh */
+  overflow: hidden;
   background: var(--bg-root);
 }
 
@@ -71,6 +72,7 @@
 
 .admin-body {
   flex: 1;
+  min-height: 0;
   padding: 24px 28px;
   overflow: hidden;
 }
@@ -78,8 +80,9 @@
 .admin-games-layout {
   display: grid;
   grid-template-columns: 360px 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 20px;
-  height: calc(100vh - 120px);
+  height: 100%;
 }
 
 .admin-games-panel,
