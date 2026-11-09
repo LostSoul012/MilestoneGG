@@ -228,11 +228,7 @@ body {
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
-  padding-bottom: 4px;
   border-top: 1px solid var(--border);
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-card); /* keeps buttons visible while a long modal scrolls */
 }
 
 /* ── TOAST ── */
