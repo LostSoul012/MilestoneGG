@@ -186,6 +186,9 @@ body {
   max-width: 100%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.8), var(--shadow-glow);
   animation: slideUp 0.2s ease;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px); /* overlay has 20px padding top and bottom */
+  overflow-y: auto;
 }
 
 @keyframes slideUp {
@@ -225,7 +228,11 @@ body {
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
+  padding-bottom: 4px;
   border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card); /* keeps buttons visible while a long modal scrolls */
 }
 
 /* ── TOAST ── */
